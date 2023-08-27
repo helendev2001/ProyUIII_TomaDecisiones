@@ -157,8 +157,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ee0a622fb393454a90525482f865ca8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  velocidad: 8
-  energia: 8
+  velocidad: 5
+  energia: 50
   objeto: {fileID: 137231128}
   enemigo: {fileID: 1714954318}
   zonaSegura: {fileID: 1099882957}

@@ -105,11 +105,15 @@ public class BTPrueba : MonoBehaviour
     private void Descanzar()
     {
         Debug.Log("DescanzarTask");
-        if (energia<0)
+        if (energia<15)
         {
           
             transform.LookAt(zonaSegura);
             transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
+            if(colisionoCon==2)
+            {
+                energia = 100;
+            }
         }
         Task.current.Succeed();
 
