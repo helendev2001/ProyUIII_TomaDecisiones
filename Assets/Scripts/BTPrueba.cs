@@ -1,145 +1,133 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Panda;
+using UnityEngine.SceneManagement;
 
 public class BTPrueba : MonoBehaviour
 {
     public float velocidad = 5;
-    public float energia;
-    private int colisionoCon = 0;// 1-bateria, 2-A, 3-B
+    private int colisionoCon = 0;
 
-    //Enemigo
     public Transform objeto;
-    public Transform enemigo; // La transformada del enemigo
-    public Transform zonaSegura;
-    public GameObject enemigoInstance;
+    public Transform arcoColision;
+    public Transform pelota; // La transformada del enemigo
+    public Transform arco; // La transformada del enemigo
+    public Vector3 puntoRetorno = new Vector3(0f, 0f, 0f);
+    public Vector3 puntoPenal = new Vector3(0f, 0f, 0f);
     public float distanciaUmbral = 10.0f; // Umbral de distancia para considerar que el enemigo está cerca
     public bool cerca = false;
-    public List<Transform> puntos;
-    public int tempPunto=0;
-    
+    public Text scoreText;
+    public int score = 0;
+
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.collider.name == "Enemigo")
+        if (collision.collider.name == "Pelota (1)")
             colisionoCon = 1;
-        if (collision.collider.name == "ZonaSegura")
+        if (collision.collider.name == "ArcoColision")
             colisionoCon = 2;
-        if (collision.collider.name == "PuntoB")
-            colisionoCon = 3;
     }
-    private void MoverObject()
-     {
-        Vector3 destino = (puntos[tempPunto].position-transform.position).normalized;
-        transform.Translate(destino * velocidad * Time.deltaTime);
 
-
+    private IEnumerator Score()
+    {
+        if (score == 50)
+        {
+            yield return new WaitForSeconds(1.5f);
+            SceneManager.LoadScene(2);
+        }
     }
+
     private void FixedUpdate()
     {
-        Debug.Log("Energia"+energia);
-        if (enemigo != null)
+        if (pelota != null)
         {
-            float distanciaAlEnemigo = Vector3.Distance(objeto.position, enemigo.position);
+            float distanciaAlEnemigo = Vector3.Distance(objeto.position, pelota.position);
             if (distanciaAlEnemigo <= distanciaUmbral)
                 cerca = true;
             else
                 cerca = false;
         }
+        Debug.Log("Score IA" + score);
+        scoreText.text = score.ToString();
+        StartCoroutine(Score());
 
     }
-    [Task]
-    private void EnemigoCerca()
+   [Task]
+    private void PelotaCerca()
     {
-        Debug.Log("EnemigoCercaTask");
+        Debug.Log("PelotaCercaTask");
         if (cerca)
         {
-            Debug.Log("EnemigoCerca");
+            Debug.Log("PelotaCerca");
             Task.current.Succeed();
         }
         else
         {
-            Debug.Log("El Enemigo no esta Cerca");
+            Debug.Log("La Pelota no esta Cerca");
             Task.current.Fail();
         }
-     
-
 
     }
 
+
     [Task]
-    private void IrEnemigo()
+    private void IrPelota()
     {
-        Debug.Log("IrEnemigoTask");
-        if (enemigoInstance == null)
+        if (pelota != null)
+        {
+            transform.LookAt(pelota.position);
+            transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
+            Task.current.Succeed();
+        }
+        else
         {
             Task.current.Fail();
-            return;
         }
-        if (enemigo != null)
+    }
+
+    [Task]
+    private void ImpactarPelota()
+    {
+        if (colisionoCon == 1)
         {
-            transform.LookAt(enemigo);
-            transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
-            energia -= 0.07f;
-            Debug.Log("Colision " + colisionoCon);
+            score = score + 10;
+            colisionoCon = 0; // Reiniciar la colisión
+            pelota.position = arco.position;
+           /* pelota.LookAt(arco.position);
+            pelota.Translate(Vector3.forward * velocidad * Time.deltaTime);*/
+            Task.current.Succeed();
+        }
+        else
+        {
+            Task.current.Fail();
+        }
+    }
+
+    [Task]
+    private void Regresar()
+    {
+        transform.LookAt(puntoRetorno);
+        transform.Translate(Vector3.forward * 3.5f * Time.deltaTime);
+
+        float distanciaAlPunto = Vector3.Distance(transform.position, puntoRetorno);
+        if (distanciaAlPunto < 0.1f) // Puedes ajustar el umbral de distancia
+        {
             Task.current.Succeed();
         }
     }
 
     [Task]
-    private void Atacar()
+    private void DevolverPelota()
     {
-        Debug.Log("AtacarTask");
-        Destroy(enemigoInstance); // Utiliza enemigo.gameObject para destruir el objeto enemigo
-        energia -= 0.07f;
-        if(enemigoInstance == null)
-        {
-            Task.current.Fail();
-            return;
-        }
-        Task.current.Succeed();
+        pelota.LookAt(puntoPenal);
+        pelota.Translate(Vector3.forward * velocidad * Time.deltaTime);
 
+        float distanciaAlPunto = Vector3.Distance(pelota.position, puntoPenal);
+        if (distanciaAlPunto < 0.1f)
+        {
+            Task.current.Succeed();
+        }
     }
 
-    [Task]
-    private void Descanzar()
-    {
-        Debug.Log("DescanzarTask");
-        if (energia<15)
-        {
-          
-            transform.LookAt(zonaSegura);
-            transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
-            if(colisionoCon==2)
-            {
-                energia = 100;
-            }
-        }
-        Task.current.Succeed();
-
-    }
-
-    [Task]
-    private void RecorrerPerimetro()
-    {
-        Debug.Log("RecorrerPerimetrfoTask");
-        if (enemigo !=null && Vector3.Distance(transform.position, enemigo.transform.position) < distanciaUmbral)
-        {
-            Task.current.Fail();
-            return;
-
-        }
-
-        if (Vector3.Distance(transform.position, puntos[tempPunto].position) < 1f)
-        {
-            tempPunto = (tempPunto + 1) % puntos.Count;
-        }
-
-        MoverObject();
-        Task.current.Succeed();
-        energia -= 0.07f;
-
-       // if (energia < 10)
-        //    Task.current.Fail();
-    }
 }

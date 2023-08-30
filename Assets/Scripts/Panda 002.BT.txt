@@ -1,9 +1,8 @@
 tree("Root")
 	fallback
 		sequence
-			EnemigoCerca
-			IrEnemigo
-			Atacar
-		sequence
-			Descanzar
-			RecorrerPerimetro
+			PelotaCerca
+			IrPelota
+			ImpactarPelota
+			Regresar
+			DevolverPelota
